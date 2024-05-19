@@ -1,0 +1,21 @@
+{
+  "name": "JSONScriptLib",
+  "version": "0.1.0",
+  "description": "A library to execute JSONScript - a simple format for defining a sequence of steps including commands and file operations.",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "keywords": [
+    "jsonscript",
+    "script",
+    "execution",
+    "commands",
+    "file-operations"
+  ],
+  "author": "Jason Jacobs <rootedbox@icloud.com>",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.6.8"
+  }
+}
