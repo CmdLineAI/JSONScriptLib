@@ -1,6 +1,5 @@
 const fs = require("fs").promises;
 const { exec } = require("child_process");
-const axios = require("axios");
 
 class JSONScript {
   constructor(jsonScript) {
@@ -31,7 +30,7 @@ class JSONScript {
         this.executionDescription.push(`${step.comment}`);
       }
       if (step.cmd) {
-        this.executionPlan.push(`Execute command: ${step.cmd}`);
+        this.executionPlan.push(`${step.cmd}`);
       }
       if (step.file) {
         this.executionPlan.push(`Create file: ${step.file.name}`);
