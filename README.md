@@ -85,7 +85,23 @@ node test.js
  • results: An array of all results from each step completed successfully.
  • error: An error object if any command fails. An error will stop the completion of the JSONScript.
 
-Contribution
+# Running Tests
+
+To run the tests for JSONScriptLib, you can use the following command:
+
+```bash
+npm test
+```
+
+This will run the tests in the index.test.js file.
+
+You can also use the --watch flag to run the tests in watch mode, which will automatically re-run the tests whenever a file changes:
+
+```bash
+npm test -- --watch
+```
+
+# Contribution
 
 Feel free to contribute to the JSONScriptLib project. Fork the repository and submit a pull request with your improvements.
 
