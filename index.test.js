@@ -27,3 +27,21 @@ test("throws an error for an invalid JSONScript", () => {
     "JSONScript must be an array of objects."
   );
 });
+
+test("skips changing directory if already in the same directory", async () => {
+  const currentDirectory = process.cwd();
+
+  const jsonScript = [
+    { cmd: `cd ${currentDirectory}` }, 
+    { cmd: "cd ." }, 
+  ];
+
+  const script = new JSONScript(jsonScript);
+  const { results, error } = await script.execute();
+
+  console.log("Results:", results);
+  console.log("Error:", error);
+
+  expect(error).toBeNull();
+  expect(results).toHaveLength(0); 
+});
