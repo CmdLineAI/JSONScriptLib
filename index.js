@@ -27,7 +27,7 @@ class JSONScript {
   }
 
   createExecutionPlan() {
-    this.jsonScript.forEach((step, index) => {
+    this.jsonScript.forEach((step) => {
       if (step.comment) {
         this.executionDescription.push(`${step.comment}`);
       }
@@ -40,87 +40,117 @@ class JSONScript {
     });
   }
 
-  executeCommand(cmd, isBackground) {
+  async executeCommand(cmd) {
+    const cmdParts = this.getCommandParts(cmd);
+    const options = this.getCommandOptions(false);
+    const process = spawn(cmdParts.mainCmd, cmdParts.args, options);
+
+    return this.handleProcess(process);
+  }
+
+  async executeBackgroundCommand(cmd) {
+    const cmdParts = this.getCommandParts(cmd.slice(0, -1).trim());
+    const options = this.getCommandOptions(true);
+    const process = spawn(cmdParts.mainCmd, cmdParts.args, options);
+
+    process.unref();
+    return `Started background task: ${cmd}`;
+  }
+
+  getCommandParts(cmd) {
+    const cmdParts = cmd.trim().split(" ");
+    return {
+      mainCmd: cmdParts.shift(),
+      args: cmdParts,
+    };
+  }
+
+  getCommandOptions(isBackground) {
+    return {
+      cwd: this.cwd,
+      shell: true,
+      detached: isBackground,
+      stdio: isBackground ? "ignore" : "pipe",
+    };
+  }
+
+  handleProcess(process) {
     return new Promise((resolve, reject) => {
-      const cmdParts = cmd.split(" ");
-      const mainCmd = cmdParts.shift();
-      const options = {
-        cwd: this.cwd,
-        shell: true,
-        detached: isBackground,
-        stdio: isBackground ? "ignore" : "pipe",
-      };
-      const process = spawn(mainCmd, cmdParts, options);
+      let stdout = "";
+      let stderr = "";
 
-      if (isBackground) {
-        process.unref();
-        resolve(`Started background task: ${cmd}`);
-      } else {
-        let stdout = "";
-        let stderr = "";
+      process.stdout.on("data", (data) => {
+        stdout += data.toString();
+      });
 
-        process.stdout.on("data", (data) => {
-          stdout += data.toString();
-        });
+      process.stderr.on("data", (data) => {
+        stderr += data.toString();
+      });
 
-        process.stderr.on("data", (data) => {
-          stderr += data.toString();
-        });
-
-        process.on("close", (code) => {
-          if (code !== 0) {
-            reject(stderr.trim());
-          } else {
-            resolve(stdout.trim());
-          }
-        });
-      }
+      process.on("close", (code) => {
+        if (code !== 0) {
+          reject(stderr.trim());
+        } else {
+          resolve(stdout.trim());
+        }
+      });
     });
+  }
+
+  async changeDirectory(command) {
+    const newDir = command.slice(3).trim();
+    const newCwd = path.resolve(this.cwd, newDir);
+
+    if (newCwd !== this.cwd) {
+      this.cwd = newCwd;
+      return `Changed directory to ${this.cwd}`;
+    }
+  }
+
+  async createFile(step) {
+    const filePath = path.resolve(this.cwd, step.file.name);
+    await fs.writeFile(filePath, step.file.data);
+    return `File ${filePath} created successfully.`;
+  }
+
+  async processCommand(command, index) {
+    if (command.startsWith("cd ")) {
+      const result = await this.changeDirectory(command);
+      if (result) {
+        this.results.push({ step: index + 1, type: "cmd", result });
+      }
+    } else {
+      const isBackground = command.endsWith("&");
+      const result = isBackground
+        ? await this.executeBackgroundCommand(command)
+        : await this.executeCommand(command);
+      this.results.push({ step: index + 1, type: "cmd", result });
+    }
+  }
+
+  async executeSteps(step, index) {
+    try {
+      if (step.cmd) {
+        const commands = step.cmd.split("&&").map((cmd) => cmd.trim());
+        for (let command of commands) {
+          await this.processCommand(command, index);
+        }
+      } else if (step.file) {
+        const result = await this.createFile(step);
+        this.results.push({ step: index + 1, type: "file", result });
+      }
+    } catch (error) {
+      this.error = error;
+      return false;
+    }
+    return true;
   }
 
   async execute() {
     for (const [index, step] of this.jsonScript.entries()) {
-      try {
-        if (step.cmd) {
-          const commands = step.cmd.split("&&").map((cmd) => cmd.trim());
-
-          for (let command of commands) {
-            if (command.startsWith("cd ")) {
-              const newDir = command.slice(3).trim();
-              const newCwd = path.resolve(this.cwd, newDir);
-
-              if (newCwd !== this.cwd) {
-                this.cwd = newCwd;
-                this.results.push({
-                  step: index + 1,
-                  type: "cmd",
-                  result: `Changed directory to ${this.cwd}`,
-                });
-              }
-            } else {
-              const isBackground = command.endsWith("&");
-              const trimmedCommand = isBackground
-                ? command.slice(0, -1).trim()
-                : command;
-              const result = await this.executeCommand(
-                trimmedCommand,
-                isBackground
-              );
-              this.results.push({ step: index + 1, type: "cmd", result });
-            }
-          }
-        } else if (step.file) {
-          const filePath = path.resolve(this.cwd, step.file.name);
-          await fs.writeFile(filePath, step.file.data);
-          this.results.push({
-            step: index + 1,
-            type: "file",
-            result: `File ${filePath} created successfully.`,
-          });
-        }
-      } catch (error) {
-        this.error = error;
-        return { results: this.results, error };
+      const success = await this.executeSteps(step, index);
+      if (!success) {
+        return { results: this.results, error: this.error };
       }
     }
     return { results: this.results, error: this.error };
@@ -128,3 +158,4 @@ class JSONScript {
 }
 
 module.exports = JSONScript;
+
