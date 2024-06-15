@@ -1,3 +1,5 @@
 node_modules
 test-dir
 coverage
+
+.DS_Store
