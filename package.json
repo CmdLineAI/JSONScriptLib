@@ -1,6 +1,6 @@
 {
   "name": "jsonscriptlib",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "A library to execute JSONScript - a simple format for defining a sequence of steps including commands and file operations.",
   "main": "index.js",
   "scripts": {
