@@ -9,7 +9,8 @@ class JSONScript {
     this.executionPlan = [];
     this.results = [];
     this.error = null;
-    this.cwd = process.cwd();
+    this.initialCwd = process.cwd(); 
+    this.cwd = this.initialCwd;
 
     this.#validateJSONScript();
     this.#createExecutionPlan();
@@ -118,7 +119,7 @@ class JSONScript {
   }
 
   async #createFile(step) {
-    const filePath = path.resolve(this.cwd, step.file.name);
+    const filePath = path.resolve(this.initialCwd, step.file.name);
     await fs.writeFile(filePath, step.file.data);
     return `File ${filePath} created successfully.`;
   }

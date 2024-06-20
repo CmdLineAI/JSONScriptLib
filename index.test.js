@@ -1,5 +1,16 @@
 const JSONScript = require("./index");
 const os = require("os");
+const path = require("path");
+const fs = require("fs").promises;
+
+async function fileExists(filePath) {
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 test("executes a simple script correctly", async () => {
   const platform = os.platform();
@@ -7,17 +18,28 @@ test("executes a simple script correctly", async () => {
     { cmd: platform === "win32" ? "rmdir /s /q test-dir" : "rm -rf test-dir" },
     { cmd: "mkdir test-dir" },
     { cmd: "cd test-dir" },
-    { cmd: "touch test-file.txt" },
-    { file: { name: "test-file.txt", data: "Hello, world!" } },
+    { cmd: "touch test-file2.txt" },
+    { file: { name: "test-dir/test-file1.txt", data: "Hello, world!" } },
   ];
 
   const script = new JSONScript(jsonScript);
   const { results, error } = await script.execute();
 
+  const testFile1Exists = await fileExists(
+    path.resolve("test-dir/test-file1.txt")
+  );
+  const testFile2Exists = await fileExists(
+    path.resolve("test-dir/test-file2.txt")
+  );
+
+  await fs.rm(path.resolve("test-dir"), { recursive: true, force: true });
+
   expect(error).toBeNull();
   expect(results).toHaveLength(5);
   expect(results[2].result).toContain("Changed directory to");
   expect(results[4].result).toContain("created successfully");
+  expect(testFile1Exists).toBe(true);
+  expect(testFile2Exists).toBe(true);
 });
 
 test("throws an error for an invalid JSONScript", () => {
