@@ -88,22 +88,15 @@ class JSONScript {
 
   #handleProcess(childProcess) {
     return new Promise((resolve, reject) => {
-      console.log(`PID: ${childProcess.pid} - Execution started`);
-
-      childProcess.stdout.on("data", (data) => {
-        process.stdout.write(data); // Write child process stdout to parent process stdout
-      });
-
-      childProcess.stderr.on("data", (data) => {
-        process.stderr.write(data); // Write child process stderr to parent process stderr
-      });
+      process.stdin.pipe(childProcess.stdin);
+      childProcess.stdout.pipe(process.stdout);
+      childProcess.stderr.pipe(process.stderr);
 
       childProcess.on("close", (code) => {
-        console.log(`PID: ${childProcess.pid} - Completed with code: ${code}`);
         if (code !== 0) {
-          reject(`Command failed with exit code ${code}`);
+          //reject(`Command failed with exit code ${code}`);
         } else {
-          resolve(`Command succeeded with exit code ${code}`);
+          //resolve(`Command succeeded with exit code ${code}`);
         }
       });
     });
