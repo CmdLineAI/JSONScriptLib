@@ -62,10 +62,10 @@ class JSONScript {
   async #executeBackgroundCommand(cmd) {
     const cmdParts = this.#getCommandParts(cmd.slice(0, -1).trim());
     const options = this.#getCommandOptions(true);
-    const process = spawn(cmdParts.mainCmd, cmdParts.args, options);
+    const childProcess = spawn(cmdParts.mainCmd, cmdParts.args, options);
 
-    process.unref();
-    console.log(`Backgrounded task: ${cmd} with PID: ${process.pid}`); // Inform the user about background task
+    childProcess.unref();
+    console.log(`Backgrounded task: ${cmd} with PID: ${childProcess.pid}`); // Inform the user about background task
     return `Backgrounded task: ${cmd}`;
   }
 
@@ -82,23 +82,24 @@ class JSONScript {
       cwd: this.cwd,
       shell: true,
       detached: isBackground,
-      stdio: isBackground ? "ignore" : "pipe",
+      stdio: isBackground ? "ignore" : ["pipe", "pipe", "pipe"], // Use 'pipe' to capture streams for foreground tasks
     };
   }
 
-  #handleProcess(process) {
+  #handleProcess(childProcess) {
     return new Promise((resolve, reject) => {
-      //console.log(`PID: ${process.pid} - Execution started`);
-      process.stdout.on("data", (data) => {
-        process.stdout.write(data); // Stream the data directly to stdout
+      console.log(`PID: ${childProcess.pid} - Execution started`);
+
+      childProcess.stdout.on("data", (data) => {
+        process.stdout.write(data); // Write child process stdout to parent process stdout
       });
 
-      process.stderr.on("data", (data) => {
-        process.stderr.write(data); // Stream the data directly to stderr
+      childProcess.stderr.on("data", (data) => {
+        process.stderr.write(data); // Write child process stderr to parent process stderr
       });
 
-      process.on("close", (code) => {
-        //console.log(`PID: ${process.pid} - Completed with code: ${code}`);
+      childProcess.on("close", (code) => {
+        console.log(`PID: ${childProcess.pid} - Completed with code: ${code}`);
         if (code !== 0) {
           reject(`Command failed with exit code ${code}`);
         } else {
