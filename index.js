@@ -9,7 +9,7 @@ class JSONScript {
     this.executionPlan = [];
     this.results = [];
     this.error = null;
-    this.initialCwd = process.cwd(); 
+    this.initialCwd = process.cwd();
     this.cwd = this.initialCwd;
 
     this.#validateJSONScript();
@@ -65,7 +65,8 @@ class JSONScript {
     const process = spawn(cmdParts.mainCmd, cmdParts.args, options);
 
     process.unref();
-    return `Started background task: ${cmd}`;
+    console.log(`Backgrounded task: ${cmd} with PID: ${process.pid}`); // Inform the user about background task
+    return `Backgrounded task: ${cmd}`;
   }
 
   #getCommandParts(cmd) {
@@ -87,22 +88,21 @@ class JSONScript {
 
   #handleProcess(process) {
     return new Promise((resolve, reject) => {
-      let stdout = "";
-      let stderr = "";
-
+      //console.log(`PID: ${process.pid} - Execution started`);
       process.stdout.on("data", (data) => {
-        stdout += data.toString();
+        process.stdout.write(data); // Stream the data directly to stdout
       });
 
       process.stderr.on("data", (data) => {
-        stderr += data.toString();
+        process.stderr.write(data); // Stream the data directly to stderr
       });
 
       process.on("close", (code) => {
+        //console.log(`PID: ${process.pid} - Completed with code: ${code}`);
         if (code !== 0) {
-          reject(stderr.trim());
+          reject(`Command failed with exit code ${code}`);
         } else {
-          resolve(stdout.trim());
+          resolve(`Command succeeded with exit code ${code}`);
         }
       });
     });

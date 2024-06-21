@@ -61,9 +61,6 @@ test("skips changing directory if already in the same directory", async () => {
   const script = new JSONScript(jsonScript);
   const { results, error } = await script.execute();
 
-  console.log("Results:", results);
-  console.log("Error:", error);
-
   expect(error).toBeNull();
   expect(results).toHaveLength(0); 
 });
