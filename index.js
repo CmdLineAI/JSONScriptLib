@@ -94,7 +94,7 @@ class JSONScript {
 
       childProcess.on("close", (code) => {
         if (code !== 0) {
-          reject(`Command failed with exit code ${code}`);
+          resolve(`Command failed with exit code ${code}`);
         } else {
           resolve(`Command succeeded with exit code ${code}`);
         }
